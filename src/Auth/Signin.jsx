@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import SuccessToast from '../Components/SuccessToast';
 import styles from '../styles';
 
 export default function Signin() {
@@ -11,6 +12,7 @@ export default function Signin() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,11 +22,21 @@ export default function Signin() {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Signing in with:', formData);
-    navigate('/dashboard');
+    setShowSuccess(true);
+
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 1400);
   };
 
   return (
     <div className={styles.pageContainer}>
+      <SuccessToast
+        message="Sign in successful"
+        visible={showSuccess}
+        onHide={() => setShowSuccess(false)}
+      />
+
       {/* Hero / Background Section */}
       <div className={styles.heroSection}>
         <div className={styles.heroContent}>
