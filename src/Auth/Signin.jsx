@@ -157,14 +157,6 @@ export default function Signin() {
       <footer className={styles.footer}>
         <div className={styles.trustBadges}>
           <div className={styles.badgeItem}>
-            <span className={styles.materialIcon}>security</span>
-            <span className={styles.badgeText}>AES-256 ENCRYPTED</span>
-          </div>
-          <div className={styles.badgeItem}>
-            <span className={styles.materialIcon}>verified_user</span>
-            <span className={styles.badgeText}>ISO 27001 CERTIFIED</span>
-          </div>
-          <div className={styles.badgeItem}>
             <span className={styles.materialIcon}>notifications_active</span>
             <span className={styles.badgeText}>24/7 MONITORING</span>
           </div>

@@ -82,12 +82,6 @@ export default function Settings() {
                   <span className="text-base font-semibold">14d 06h 22m</span>
                 </div>
               </div>
-              <button 
-                type="button"
-                className="mt-6 w-full py-3 border border-[#005faf] text-[#005faf] font-semibold rounded-lg hover:bg-[#d4e3ff] transition-colors text-sm"
-              >
-                Check for Updates
-              </button>
             </section>
 
             {/* Connectivity Card */}
@@ -243,33 +237,6 @@ export default function Settings() {
                       aria-hidden="true"
                       className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                         notifications.sms ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Email Toggle */}
-                <div className="flex items-center justify-between py-4 gap-4">
-                  <div className="min-w-0">
-                    <h4 className="text-base font-semibold">Email Summary</h4>
-                    <p className="text-sm text-[#5b403d]">
-                      Weekly device health and log reports.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={notifications.email}
-                    aria-label="Toggle Email Summary"
-                    onClick={() => handleToggleChange('email')}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      notifications.email ? 'bg-[#af101a]' : 'bg-[#e2e2e2]'
-                    }`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        notifications.email ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
                   </button>

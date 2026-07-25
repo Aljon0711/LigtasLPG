@@ -290,9 +290,6 @@ export default function Signup() {
 
           {/* Footer Meta */}
           <div className={styles.footerMeta}>
-            <p className={styles.secureText}>
-              Secure 256-bit SSL Protected Registration
-            </p>
             <div className={styles.badges}>
               <img
                 className={styles.badgeImg}

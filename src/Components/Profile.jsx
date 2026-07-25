@@ -214,21 +214,6 @@ export default function Profile() {
                   chevron_right
                 </span>
               </a>
-              <a 
-                href="#support" 
-                className="flex items-center gap-4 p-4 hover:bg-[#eeeeee] rounded-xl transition-colors group"
-              >
-                <span className="material-symbols-outlined text-[#5b403d] group-hover:text-[#af101a]">
-                  support_agent
-                </span>
-                <div className="flex-1">
-                  <h4 className="text-base font-bold text-[#1a1c1c]">Technical Support</h4>
-                  <p className="text-sm text-[#5b403d]">Live chat &amp; Ticket system</p>
-                </div>
-                <span className="material-symbols-outlined text-[#8f6f6c]">
-                  chevron_right
-                </span>
-              </a>
             </div>
             <div className="mt-auto pt-4 border-t border-[#eeeeee] text-center">
               <p className="text-sm text-[#5b403d] opacity-60">
