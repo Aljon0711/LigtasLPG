@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import SuccessToast from '../Components/SuccessToast';
 import styles from '../styles';
 
 export default function Signup() {
@@ -16,7 +15,6 @@ export default function Signup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { id, value, type, checked } = e.target;
@@ -46,23 +44,13 @@ export default function Signup() {
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSuccess(true);
-      setShowSuccess(true);
       console.log('Account created for:', formData);
-
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1400);
+      navigate('/dashboard', { state: { toast: 'Sign up successful' } });
     }, 1000);
   };
 
   return (
     <div className={styles.pageContainer}>
-      <SuccessToast
-        message="Sign up successful"
-        visible={showSuccess}
-        onHide={() => setShowSuccess(false)}
-      />
-
       {/* Decorative Background */}
       <div className={styles.bgDecoration}>
         <div className={styles.safetyMesh}></div>

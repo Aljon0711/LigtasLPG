@@ -1,14 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AppHeader, { HeaderIconLink } from './AppHeader';
+import SuccessToast from './SuccessToast';
 import styles from '../styles';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [gaugeOffset, setGaugeOffset] = useState(180);
   const [alarmText, setAlarmText] = useState('Test Alarm');
   const [isTestingAlarm, setIsTestingAlarm] = useState(false);
   const [isValveOpen, setIsValveOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
+  // Show toast after sign in / sign up
+  useEffect(() => {
+    const message = location.state?.toast;
+    if (!message) return;
+
+    setToastMessage(message);
+    setShowToast(true);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, location.pathname, navigate]);
 
   // Simulate real-time gauge pressure variation
   useEffect(() => {
@@ -46,6 +60,12 @@ export default function Dashboard() {
 
   return (
     <div className={styles.pageBody}>
+      <SuccessToast
+        message={toastMessage}
+        visible={showToast}
+        onHide={() => setShowToast(false)}
+      />
+
       <AppHeader>
         <div className={`${styles.onlineBadge} flex items-center gap-2`}>
           <div className={styles.pulseDot}></div>
