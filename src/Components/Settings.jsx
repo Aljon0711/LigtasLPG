@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import AppHeader, { HeaderIconButton, HeaderIconLink } from './AppHeader';
+import BottomNav from './BottomNav';
+import { usePreferences } from '../lib/PreferencesContext';
 import '../styles';
 
 export default function Settings() {
+  const { t } = usePreferences();
   // --- State Management ---
   const [sensitivity, setSensitivity] = useState(45);
   const [notifications, setNotifications] = useState({
@@ -43,10 +45,10 @@ export default function Settings() {
         {/* Page Headline */}
         <div className="py-4">
           <h2 className="text-2xl md:text-3xl font-bold">
-            Settings &amp; Configuration
+            {t('settings.title')}
           </h2>
           <p className="text-sm text-[#5b403d] mt-1">
-            Manage your device hardware and notification preferences.
+            {t('settings.subtitle')}
           </p>
         </div>
 
@@ -60,7 +62,7 @@ export default function Settings() {
                 <span className="material-symbols-outlined text-[#af101a]">
                   memory
                 </span>
-                <h3 className="text-xl font-semibold">Device Info</h3>
+                <h3 className="text-xl font-semibold">{t('settings.deviceInfo')}</h3>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center py-1 border-b border-[#e2e2e2]">
@@ -90,7 +92,7 @@ export default function Settings() {
                 <span className="material-symbols-outlined text-[#005faf]">
                   wifi
                 </span>
-                <h3 className="text-xl font-semibold">Connectivity</h3>
+                <h3 className="text-xl font-semibold">{t('settings.signal')}</h3>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center py-1">
@@ -101,10 +103,12 @@ export default function Settings() {
                 </div>
                 <div className="flex justify-between items-center py-1">
                   <span className="text-xs font-bold text-[#5b403d] uppercase tracking-wider">
-                    Signal Strength
+                    {t('settings.signal')}
                   </span>
                   <div className="flex items-center gap-1">
-                    <span className="text-base text-[#11651d] font-bold">Strong</span>
+                    <span className="text-base text-[#11651d] font-bold">
+                      {t('settings.strong')}
+                    </span>
                     <span className="material-symbols-outlined text-[#11651d] !text-[18px]">
                       signal_wifi_4_bar
                     </span>
@@ -132,13 +136,13 @@ export default function Settings() {
                 <span className="material-symbols-outlined text-[#d32f2f]">
                   tune
                 </span>
-                <h3 className="text-xl font-semibold">Thresholds</h3>
+                <h3 className="text-xl font-semibold">{t('settings.sensitivity')}</h3>
               </div>
               <div className="space-y-6 py-4">
                 <div>
                   <div className="flex justify-between items-end mb-3">
                     <div>
-                      <h4 className="text-base font-bold">Leak Sensitivity</h4>
+                      <h4 className="text-base font-bold">{t('settings.sensitivity')}</h4>
                       <p className="text-sm text-[#5b403d]">
                         Adjust how quickly the alarm triggers.
                       </p>
@@ -159,7 +163,7 @@ export default function Settings() {
                     max="100"
                     value={sensitivity}
                     onChange={handleSliderChange}
-                    className="custom-slider w-full h-2 bg-[#eeeeee] rounded-lg appearance-none cursor-pointer"
+                    className="custom-slider w-full cursor-pointer"
                   />
                   <div className="flex justify-between mt-1 text-xs font-bold text-[#5b403d] tracking-wider">
                     <span>CONSERVATIVE</span>
@@ -184,14 +188,14 @@ export default function Settings() {
                 <span className="material-symbols-outlined text-[#11651d]">
                   notifications_active
                 </span>
-                <h3 className="text-xl font-semibold">Notifications</h3>
+                <h3 className="text-xl font-semibold">{t('settings.notifications')}</h3>
               </div>
               
               <div className="divide-y divide-[#e2e2e2]">
                 {/* Push Toggle */}
                 <div className="flex items-center justify-between py-4 gap-4">
                   <div className="min-w-0">
-                    <h4 className="text-base font-semibold">Push Alerts</h4>
+                    <h4 className="text-base font-semibold">{t('settings.push')}</h4>
                     <p className="text-sm text-[#5b403d]">
                       Immediate notifications on your device.
                     </p>
@@ -200,7 +204,7 @@ export default function Settings() {
                     type="button"
                     role="switch"
                     aria-checked={notifications.push}
-                    aria-label="Toggle Push Alerts"
+                    aria-label={t('settings.push')}
                     onClick={() => handleToggleChange('push')}
                     className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                       notifications.push ? 'bg-[#af101a]' : 'bg-[#e2e2e2]'
@@ -218,7 +222,7 @@ export default function Settings() {
                 {/* SMS Toggle */}
                 <div className="flex items-center justify-between py-4 gap-4">
                   <div className="min-w-0">
-                    <h4 className="text-base font-semibold">SMS Alerts</h4>
+                    <h4 className="text-base font-semibold">{t('settings.sms')}</h4>
                     <p className="text-sm text-[#5b403d]">
                       Emergency text messages for critical leaks.
                     </p>
@@ -227,7 +231,7 @@ export default function Settings() {
                     type="button"
                     role="switch"
                     aria-checked={notifications.sms}
-                    aria-label="Toggle SMS Alerts"
+                    aria-label={t('settings.sms')}
                     onClick={() => handleToggleChange('sms')}
                     className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                       notifications.sms ? 'bg-[#af101a]' : 'bg-[#e2e2e2]'
@@ -253,9 +257,9 @@ export default function Settings() {
             className="flex-1 bg-[#af101a] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined filled">
-              power_settings_new
+              save
             </span>
-            REBOOT DEVICE
+            {t('settings.save')}
           </button>
           <button 
             type="button"
@@ -264,7 +268,7 @@ export default function Settings() {
             <span className="material-symbols-outlined">
               delete_forever
             </span>
-            FACTORY RESET
+            {t('settings.reset')}
           </button>
         </div>
 
@@ -276,30 +280,7 @@ export default function Settings() {
         </div>
       </main>
 
-      {/* Bottom Navigation Footer */}
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-[#eeeeee] shadow-lg rounded-t-xl">
-        <Link 
-          to="/dashboard" 
-          className="flex flex-col items-center justify-center text-[#5b403d] px-4 py-1 hover:bg-[#e2e2e2] transition-opacity"
-        >
-          <span className="material-symbols-outlined">dashboard</span>
-          <span className="text-xs font-bold tracking-wider">Home</span>
-        </Link>
-        <Link 
-          to="/logs" 
-          className="flex flex-col items-center justify-center text-[#5b403d] px-4 py-1 hover:bg-[#e2e2e2] transition-opacity"
-        >
-          <span className="material-symbols-outlined">history</span>
-          <span className="text-xs font-bold tracking-wider">Logs</span>
-        </Link>
-        <Link 
-          to="/settings" 
-          className="flex flex-col items-center justify-center bg-[#d32f2f] text-[#fff2f0] rounded-full px-4 py-1 scale-90 transition-transform duration-200"
-        >
-          <span className="material-symbols-outlined filled">settings</span>
-          <span className="text-xs font-bold tracking-wider">Settings</span>
-        </Link>
-      </nav>
+      <BottomNav />
     </div>
   );
 }

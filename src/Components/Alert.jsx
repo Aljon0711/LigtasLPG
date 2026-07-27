@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppHeader from './AppHeader';
+import { usePreferences } from '../lib/PreferencesContext';
 import '../styles';
 
 export default function Alert() {
   const navigate = useNavigate();
+  const { t } = usePreferences();
   const [holdingProgress, setHoldingProgress] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const pressTimerRef = useRef(null);
@@ -72,8 +74,11 @@ export default function Alert() {
           {/* Warning Headline */}
           <div className="space-y-2">
             <h1 className="text-3xl md:text-4xl leading-tight font-extrabold uppercase tracking-tight">
-              CRITICAL ALERT: GAS LEAK DETECTED
+              {t('alert.title')}
             </h1>
+            <p className="text-base font-medium text-white/90">
+              {t('alert.subtitle')}
+            </p>
             <div className="inline-flex items-center gap-2 px-4 py-1 bg-white text-[#d32f2f] rounded-full text-xs font-bold uppercase tracking-wider">
               <span className="material-symbols-outlined text-[18px]">
                 gpp_good
@@ -134,7 +139,7 @@ export default function Alert() {
                   }}
                 />
                 <span className="relative z-10">
-                  {isResetting ? 'SYSTEM RESETTING...' : 'RESET SYSTEM'}
+                  {isResetting ? 'SYSTEM RESETTING...' : t('alert.dismiss')}
                 </span>
               </button>
               <p className="mt-2 text-white/70 text-xs font-semibold uppercase tracking-wider">
@@ -149,7 +154,7 @@ export default function Alert() {
               className="w-full border-2 border-white text-white text-base py-3 rounded-xl hover:bg-white hover:text-[#d32f2f] transition-colors flex items-center justify-center gap-2 font-semibold"
             >
               <span className="material-symbols-outlined">call</span>
-              Call Emergency Services
+              {t('alert.call')}
             </button>
           </div>
         </div>

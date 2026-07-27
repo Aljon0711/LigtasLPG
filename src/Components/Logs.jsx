@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import AppHeader, { HeaderIconLink } from './AppHeader';
+import BottomNav from './BottomNav';
+import { usePreferences } from '../lib/PreferencesContext';
 import styles from '../styles';
 
 export default function Logs() {
+  const { t } = usePreferences();
+
   // Activity logs dynamic state data
   const [logs] = useState([
     {
@@ -89,96 +92,67 @@ export default function Logs() {
       <main className={styles.mainContent}>
         {/* Section Header */}
         <div className={styles.sectionHeader}>
-          <h2 className={styles.headline}>Safety Activity</h2>
-          <p className={styles.subheadline}>
-            Real-time surveillance and incident history.
-          </p>
+          <h2 className={styles.headline}>{t('logs.title')}</h2>
+          <p className={styles.subheadline}>{t('logs.subtitle')}</p>
         </div>
 
         {/* Dynamic Activity Feed */}
         <div className={styles.feedList}>
-          {logs.map((log) => (
-            <div
-              key={log.id}
-              className={`${styles.logCard} ${getCardBorderStyle(log.type)}`}
-              onClick={() => handleCardClick(log.title)}
-            >
-              <div className={getPillStyle(log.type)}>
-                <span
-                  className={`${styles.materialIcon} ${log.filled ? styles.materialIconFilled : ''}`}
-                >
-                  {log.icon}
-                </span>
-              </div>
-              <div className={styles.cardBody}>
-                <div className={styles.cardHeader}>
+          {logs.length === 0 ? (
+            <p className={styles.subheadline}>{t('logs.empty')}</p>
+          ) : (
+            logs.map((log) => (
+              <div
+                key={log.id}
+                className={`${styles.logCard} ${getCardBorderStyle(log.type)}`}
+                onClick={() => handleCardClick(log.title)}
+              >
+                <div className={getPillStyle(log.type)}>
                   <span
-                    className={`${styles.cardTitle} ${log.type === 'warning' ? styles.titleRed : ''}`}
+                    className={`${styles.materialIcon} ${styles.materialIconFilled}`}
+                    style={{ fontSize: '28px', opacity: 1 }}
                   >
-                    {log.title}
-                  </span>
-                  <span
-                    className={`${styles.cardTime} ${log.type === 'warning' ? styles.timeRed : ''}`}
-                  >
-                    {log.time}
+                    {log.icon}
                   </span>
                 </div>
-                <p className={styles.cardDescription}>{log.description}</p>
-
-                {log.hasReport && (
-                  <button
-                    className={styles.reportBtn}
-                    onClick={handleIncidentReport}
-                    type="button"
-                  >
-                    VIEW INCIDENT REPORT
+                <div className={styles.cardBody}>
+                  <div className={styles.cardHeader}>
                     <span
-                      className={styles.materialIcon}
-                      style={{ fontSize: '16px' }}
+                      className={`${styles.cardTitle} ${log.type === 'warning' ? styles.titleRed : ''}`}
                     >
-                      chevron_right
+                      {log.title}
                     </span>
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                    <span
+                      className={`${styles.cardTime} ${log.type === 'warning' ? styles.timeRed : ''}`}
+                    >
+                      {log.time}
+                    </span>
+                  </div>
+                  <p className={styles.cardDescription}>{log.description}</p>
 
-        {/* Atmospheric Visualization Banner */}
-        <div className={styles.visualBanner}>
-          <div className={styles.bannerOverlay}></div>
-          <div className={styles.bannerContent}>
-            <span className={styles.bannerBadge}>SYSTEM VIGILANT</span>
-            <p className={styles.bannerText}>Continuous Monitoring Active</p>
-          </div>
-          <img
-            alt="Clean, modern kitchen with smart safety monitoring"
-            className={styles.bannerImage}
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrX10tiVRPNSVAaJxKGOeN3Nxrm6gEOVeWrJMHsqUpw6xlYZgXq_yq5w3Amlc7_lN-xXJ0YmnJpSp0N5WLCbTxowbjRTOXxtWx3eBsiOS9wsyMJCntA6blVpvwpBW2WY5u2D27v-3xjd9wjZyRd2Pf-O6zI8vrcBFRgGbKpW1P96V0lP9XWgEfaje0cQlgiDwO8LyXM0A5bCmm84AmZjDr_3LDTZFwWF9lwTGxyHkEZEKTRbT2jh6MsjFMHE2yI0J7E-tRgDIDV1E"
-          />
+                  {log.hasReport && (
+                    <button
+                      className={styles.reportBtn}
+                      onClick={handleIncidentReport}
+                      type="button"
+                    >
+                      VIEW INCIDENT REPORT
+                      <span
+                        className={styles.materialIcon}
+                        style={{ fontSize: '16px' }}
+                      >
+                        chevron_right
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className={styles.bottomNav}>
-        <Link className={styles.navItem} to="/dashboard">
-          <span className={styles.materialIcon}>dashboard</span>
-          <span className={styles.navLabel}>Home</span>
-        </Link>
-        <Link className={styles.navItemActive} to="/logs">
-          <span
-            className={`${styles.materialIcon} ${styles.materialIconFilled}`}
-          >
-            history
-          </span>
-          <span className={styles.navLabel}>Logs</span>
-        </Link>
-        <Link className={styles.navItem} to="/settings">
-          <span className={styles.materialIcon}>settings</span>
-          <span className={styles.navLabel}>Settings</span>
-        </Link>
-      </nav>
+      <BottomNav />
     </div>
   );
 }

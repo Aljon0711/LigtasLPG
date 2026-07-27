@@ -1,4 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
+import BrandLogo from './BrandLogo'
+import { usePreferences } from '../lib/PreferencesContext'
 
 /**
  * Shared top app bar — matches Settings header sizing.
@@ -7,16 +9,18 @@ import { Link, useNavigate } from 'react-router-dom'
 export default function AppHeader({
   children,
   showBack = false,
+  backTo = '/dashboard',
   variant = 'default',
 }) {
   const navigate = useNavigate()
+  const { t } = usePreferences()
   const isAlert = variant === 'alert'
   const iconColor = isAlert ? 'text-white' : 'text-[#af101a]'
   const titleColor = isAlert ? 'text-white' : 'text-[#af101a]'
 
   return (
     <header
-      className={`fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-16 box-border ${
+      className={`fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-16 box-border app-header ${
         isAlert
           ? 'bg-transparent'
           : 'bg-[#f9f9f9]/95 backdrop-blur-sm shadow-sm'
@@ -26,8 +30,8 @@ export default function AppHeader({
         {showBack ? (
           <button
             type="button"
-            onClick={() => navigate(-1)}
-            aria-label="Go back"
+            onClick={() => navigate(backTo)}
+            aria-label={t('nav.back')}
             className="hover:opacity-80 transition-opacity active:scale-95 duration-100 flex items-center p-1 shrink-0"
           >
             <span className={`material-symbols-outlined ${iconColor} !text-[24px]`}>
@@ -35,9 +39,7 @@ export default function AppHeader({
             </span>
           </button>
         ) : (
-          <span className={`material-symbols-outlined ${iconColor} !text-[24px] shrink-0`}>
-            signal_wifi_4_bar
-          </span>
+          <BrandLogo size={24} onDark={isAlert} />
         )}
         <h1 className={`text-xl font-bold ${titleColor} truncate leading-7`}>
           LigtasLPG
