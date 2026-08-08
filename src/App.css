@@ -1405,11 +1405,7 @@
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.1s ease;
-}
-
-.btnAlarm:hover {
-  background-color: var(--primary-container);
-  color: var(--on-primary-container);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btnAlarm:active {
@@ -1420,8 +1416,16 @@
   color: var(--primary);
 }
 
-.btnAlarm:hover .btnAlarmIcon {
-  color: var(--on-primary-container);
+/* Hover only on devices that truly support hover (not sticky phone tap) */
+@media (hover: hover) and (pointer: fine) {
+  .btnAlarm:hover {
+    background-color: var(--primary-container);
+    color: var(--on-primary-container);
+  }
+
+  .btnAlarm:hover .btnAlarmIcon {
+    color: var(--on-primary-container);
+  }
 }
 
 .btnValve {
@@ -1436,11 +1440,7 @@
   border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.1s ease;
-}
-
-.btnValve:hover {
-  background-color: var(--secondary);
-  color: var(--on-secondary);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btnValve:active {
@@ -1451,8 +1451,15 @@
   color: var(--secondary);
 }
 
-.btnValve:hover .btnValveIcon {
-  color: var(--on-secondary);
+@media (hover: hover) and (pointer: fine) {
+  .btnValve:hover {
+    background-color: var(--secondary);
+    color: var(--on-secondary);
+  }
+
+  .btnValve:hover .btnValveIcon {
+    color: var(--on-secondary);
+  }
 }
 
 /* Emergency Protocol Banner */
@@ -1503,10 +1510,13 @@
   border: none;
   cursor: pointer;
   transition: all 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.emergencyBtn:hover {
-  filter: brightness(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .emergencyBtn:hover {
+    filter: brightness(1.1);
+  }
 }
 
 .emergencyBtn:active {

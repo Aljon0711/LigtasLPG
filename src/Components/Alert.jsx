@@ -1,49 +1,124 @@
-import React, { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import AppHeader from './AppHeader';
-import { usePreferences } from '../lib/PreferencesContext';
-import '../styles';
+import React, { useEffect, useState, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import AppHeader from './AppHeader'
+import { usePreferences } from '../lib/PreferencesContext'
+import {
+  ensureUserDevice,
+  sendDeviceCommand,
+  addActivityLog,
+  subscribeToDevice,
+} from '../lib/devices'
+import { getCurrentProfile, getEmergencyContacts } from '../lib/profile'
+import {
+  startContinuousAlarm,
+  stopContinuousAlarm,
+  ensureAlarmPlaying,
+} from '../lib/alarmFeedback'
+import '../styles'
 
 export default function Alert() {
-  const navigate = useNavigate();
-  const { t } = usePreferences();
-  const [holdingProgress, setHoldingProgress] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const pressTimerRef = useRef(null);
+  const navigate = useNavigate()
+  const { t } = usePreferences()
+  const [holdingProgress, setHoldingProgress] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
+  const [device, setDevice] = useState(null)
+  const [primaryContact, setPrimaryContact] = useState(null)
+  const pressTimerRef = useRef(null)
 
-  // --- Long Press Logic ---
+  useEffect(() => {
+    let cancelled = false
+    let unsubscribe = () => {}
+
+    async function load() {
+      const { user, error } = await getCurrentProfile()
+      if (cancelled) return
+      if (error || !user) {
+        navigate('/', { replace: true })
+        return
+      }
+
+      const { device: d } = await ensureUserDevice()
+      if (cancelled) return
+      setDevice(d)
+      if (d?.id) unsubscribe = subscribeToDevice(d.id, setDevice)
+
+      const { data: contacts } = await getEmergencyContacts(user.id)
+      if (!cancelled) {
+        setPrimaryContact(
+          contacts?.find((c) => c.is_primary) || contacts?.[0] || null
+        )
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [navigate])
+
+  // Loop alarm while Emergency Alert is on screen
+  useEffect(() => {
+    void startContinuousAlarm()
+    return () => {
+      stopContinuousAlarm()
+    }
+  }, [])
+
   const startPress = () => {
-    if (isResetting) return;
-    setHoldingProgress(true);
-
+    if (isResetting) return
+    ensureAlarmPlaying()
+    setHoldingProgress(true)
     pressTimerRef.current = setTimeout(() => {
-      handleResetSystem();
-    }, 2000);
-  };
+      handleResetSystem()
+    }, 2000)
+  }
 
   const cancelPress = () => {
-    if (isResetting) return;
-    setHoldingProgress(false);
-    if (pressTimerRef.current) {
-      clearTimeout(pressTimerRef.current);
+    if (isResetting) return
+    setHoldingProgress(false)
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current)
+  }
+
+  const handleResetSystem = async () => {
+    setIsResetting(true)
+    setHoldingProgress(false)
+    stopContinuousAlarm()
+
+    if (device?.id) {
+      await sendDeviceCommand(device.id, 'reset_emergency')
+      await addActivityLog({
+        deviceId: device.id,
+        title: 'System Reset',
+        description: 'User confirmed safety and reset the emergency lockout.',
+        logType: 'safe',
+        icon: 'check_circle',
+        iconFilled: true,
+        pressureKpa: device.pressure_kpa,
+      })
     }
-  };
 
-  const handleResetSystem = () => {
-    setIsResetting(true);
-    setHoldingProgress(false);
-
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 1000);
-  };
+    setTimeout(
+      () =>
+        navigate('/dashboard', {
+          replace: true,
+          state: { emergencyReset: true, toast: 'System reset — monitoring resumed' },
+        }),
+      800
+    )
+  }
 
   const handleEmergencyCall = () => {
-    window.location.href = 'tel:911';
-  };
+    ensureAlarmPlaying()
+    const phone = primaryContact?.phone || '911'
+    window.location.href = `tel:${phone.replace(/\s+/g, '')}`
+  }
 
   return (
-    <div className="bg-[#d32f2f] text-white overflow-hidden h-screen flex flex-col font-sans relative">
+    <div
+      className="bg-[#d32f2f] text-white overflow-hidden h-screen flex flex-col font-sans relative"
+      onPointerDown={ensureAlarmPlaying}
+    >
       <AppHeader variant="alert">
         <Link
           to="/profile"
@@ -54,15 +129,11 @@ export default function Alert() {
         </Link>
       </AppHeader>
 
-      {/* Main Alert Content */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center relative pt-16 pb-24">
-        {/* Warning Container */}
         <div className="z-10 w-full max-w-md flex flex-col gap-6">
-          
-          {/* Pulsing Icon */}
           <div className="relative mx-auto">
             <div className="w-32 h-32 rounded-full bg-white flex items-center justify-center pulse-red">
-              <span 
+              <span
                 className="material-symbols-outlined text-[#d32f2f] text-[64px]"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
@@ -71,7 +142,6 @@ export default function Alert() {
             </div>
           </div>
 
-          {/* Warning Headline */}
           <div className="space-y-2">
             <h1 className="text-3xl md:text-4xl leading-tight font-extrabold uppercase tracking-tight">
               {t('alert.title')}
@@ -83,21 +153,22 @@ export default function Alert() {
               <span className="material-symbols-outlined text-[18px]">
                 gpp_good
               </span>
-              VALVE AUTOMATICALLY CLOSED
+              {device?.valve_open === false
+                ? 'VALVE CLOSED'
+                : 'EMERGENCY ACTIVE'}
             </div>
           </div>
 
-          {/* Safety Instructions Glass Card */}
           <div className="glass-panel p-6 rounded-xl text-left space-y-4">
             <div className="flex gap-4 items-center">
               <span className="material-symbols-outlined flex-shrink-0 text-white">
                 door_open
               </span>
               <p className="text-base text-white font-medium">
-                Leave the area immediately. Ensure windows are open if safe.
+                Leave the area immediately. Open windows if it is safe to do so.
               </p>
             </div>
-            
+
             <div className="h-[1px] bg-white/20 w-full" />
 
             <div className="flex gap-4 items-center opacity-90">
@@ -105,37 +176,39 @@ export default function Alert() {
                 info
               </span>
               <p className="text-xs text-white">
-                Sensors detected high LPG concentration in the kitchen area. The safety valve was deployed at 14:32:01.
+                Pressure:{' '}
+                {device?.pressure_kpa != null
+                  ? `${Number(device.pressure_kpa).toFixed(1)} kPa`
+                  : '—'}
+                {device?.last_seen_at
+                  ? ` · Updated ${new Date(device.last_seen_at).toLocaleTimeString()}`
+                  : ''}
               </p>
             </div>
           </div>
 
-          {/* Action Area */}
           <div className="flex flex-col gap-3 pt-4">
-            {/* Long Press Reset Button */}
             <div className="relative group">
               <button
-                id="resetButton"
                 type="button"
                 disabled={isResetting}
                 onMouseDown={startPress}
                 onMouseUp={cancelPress}
                 onMouseLeave={cancelPress}
                 onTouchStart={(e) => {
-                  e.preventDefault();
-                  startPress();
+                  e.preventDefault()
+                  startPress()
                 }}
                 onTouchEnd={cancelPress}
                 className={`w-full bg-white text-[#d32f2f] text-base py-4 rounded-xl shadow-2xl active:scale-95 transition-transform duration-100 overflow-hidden relative select-none font-bold uppercase tracking-widest ${
                   isResetting ? 'opacity-50 pointer-events-none' : ''
                 }`}
               >
-                {/* Long-press Progress Fill */}
                 <div
                   className="absolute left-0 top-0 h-full bg-[#d32f2f]/20 pointer-events-none transition-all duration-[2000ms] ease-linear"
                   style={{
                     width: holdingProgress ? '100%' : '0%',
-                    transitionDuration: holdingProgress ? '2000ms' : '0ms'
+                    transitionDuration: holdingProgress ? '2000ms' : '0ms',
                   }}
                 />
                 <span className="relative z-10">
@@ -147,42 +220,34 @@ export default function Alert() {
               </p>
             </div>
 
-            {/* Emergency Call Button */}
             <button
               type="button"
               onClick={handleEmergencyCall}
               className="w-full border-2 border-white text-white text-base py-3 rounded-xl hover:bg-white hover:text-[#d32f2f] transition-colors flex items-center justify-center gap-2 font-semibold"
             >
               <span className="material-symbols-outlined">call</span>
-              {t('alert.call')}
+              {primaryContact
+                ? `${t('alert.call')} (${primaryContact.name})`
+                : t('alert.call')}
             </button>
           </div>
         </div>
       </main>
 
-      {/* Footer Metrics */}
       <footer className="fixed bottom-6 left-0 w-full flex justify-center px-6 opacity-60 z-10">
         <div className="flex items-center gap-6 text-xs font-bold tracking-wider uppercase">
           <div className="flex items-center gap-1">
-            <span className="material-symbols-outlined !text-[16px]">
-              thermostat
-            </span>
-            <span>TEMP: 24°C</span>
+            <span className="material-symbols-outlined !text-[16px]">router</span>
+            <span>DEVICE: {device?.hardware_id || '—'}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined !text-[16px]">
-              humidity_low
+              local_fire_department
             </span>
-            <span>HUM: 45%</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="material-symbols-outlined !text-[16px]">
-              router
-            </span>
-            <span>DEVICE: LIGTAS-01-A</span>
+            <span>FLAME: {device?.flame_detected ? 'ON' : 'OFF'}</span>
           </div>
         </div>
       </footer>
     </div>
-  );
+  )
 }
