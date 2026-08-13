@@ -133,7 +133,7 @@ html.dark .custom-slider::-moz-range-thumb {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* ——— Global dark mode ——— */
+/* --- Global dark mode --- */
 html.dark {
   color-scheme: dark;
   background-color: #2f3131;
@@ -166,6 +166,20 @@ html.dark .bg-\[\#e2e2e2\] {
   background-color: #3a3c3c !important;
 }
 
+/* Keep OFF toggles visible on dark cards */
+html.dark .bg-\[\#8f6f6c\] {
+  background-color: #7a7c7c !important;
+}
+
+/* Settings Wi-Fi panels: keep dark surfaces so light text stays readable */
+html.dark .bg-\[\#e8f1fb\] {
+  background-color: #243447 !important;
+}
+
+html.dark .bg-\[\#f5f9fd\] {
+  background-color: #2a3340 !important;
+}
+
 html.dark .text-\[\#1a1c1c\] {
   color: #f1f1f1 !important;
 }
@@ -175,9 +189,27 @@ html.dark .text-\[\#8f6f6c\] {
   color: #c9b0ad !important;
 }
 
+html.dark .text-\[\#005faf\] {
+  color: #7eb6ff !important;
+}
+
+html.dark .text-\[\#11651d\] {
+  color: #7dcea0 !important;
+}
+
 html.dark .border-\[\#eeeeee\],
 html.dark .border-\[\#8f6f6c\],
-html.dark .border-\[\#e4beba\] {
+html.dark .border-\[\#e4beba\],
+html.dark .border-\[\#e2e2e2\],
+html.dark .border-\[\#c5d8ef\] {
+  border-color: #555757 !important;
+}
+
+html.dark .border-\[\#005faf\] {
+  border-color: #7eb6ff !important;
+}
+
+html.dark .divide-\[\#e2e2e2\] > :not([hidden]) ~ :not([hidden]) {
   border-color: #555757 !important;
 }
 
@@ -187,6 +219,11 @@ html.dark textarea {
   background-color: #2f3131 !important;
   color: #f1f1f1 !important;
   border-color: #555757 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #9a9c9c !important;
 }
 
 html.dark .splash-screen {
@@ -202,6 +239,7 @@ html.dark .bg-white {
 }
 
 html.dark .hover\:bg-\[\#eeeeee\]:hover,
-html.dark .hover\:bg-\[\#e2e2e2\]:hover {
+html.dark .hover\:bg-\[\#e2e2e2\]:hover,
+html.dark .hover\:bg-\[\#f3f3f3\]:hover {
   background-color: #484a4a !important;
 }

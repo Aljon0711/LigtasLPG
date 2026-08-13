@@ -18,6 +18,12 @@ import {
   getSchemaSetupMessage,
   DEFAULT_HARDWARE_ID,
 } from '../lib/devices'
+import { getSmsAccount, isSmsConfigured } from '../lib/sms'
+import {
+  isPushNative,
+  registerPushNotifications,
+  unregisterPushNotifications,
+} from '../lib/pushNotifications'
 import '../styles'
 
 export default function Settings() {
@@ -43,10 +49,35 @@ export default function Settings() {
   const [selectedWifi, setSelectedWifi] = useState(null)
   const [wifiPassword, setWifiPassword] = useState('')
   const [connectingWifi, setConnectingWifi] = useState(false)
+  const [smsConfigured] = useState(() => isSmsConfigured())
+  const [smsAccount, setSmsAccount] = useState(null)
+  const [smsBalanceLoading, setSmsBalanceLoading] = useState(false)
+  const [smsBalanceError, setSmsBalanceError] = useState('')
 
   const showToastMsg = (msg) => {
     setToastMessage(msg)
     setShowToast(true)
+  }
+
+  const loadSmsBalance = async () => {
+    if (!isSmsConfigured()) {
+      setSmsAccount(null)
+      setSmsBalanceError(t('settings.smsNotConfigured'))
+      return
+    }
+
+    setSmsBalanceLoading(true)
+    setSmsBalanceError('')
+    const { data, error } = await getSmsAccount()
+    setSmsBalanceLoading(false)
+
+    if (error) {
+      setSmsAccount(null)
+      setSmsBalanceError(error.message)
+      return
+    }
+
+    setSmsAccount(data)
   }
 
   useEffect(() => {
@@ -81,6 +112,7 @@ export default function Settings() {
       setLoading(false)
 
       unsubscribe = subscribeToDevice(d.id, setDevice)
+      if (!cancelled) loadSmsBalance()
     }
 
     load()
@@ -146,6 +178,12 @@ export default function Settings() {
 
     if (updatedDevice) setDevice(updatedDevice)
     if (updatedSettings) setSettings(updatedSettings)
+
+    if (isPushNative()) {
+      if (notifications.push) await registerPushNotifications()
+      else await unregisterPushNotifications()
+    }
+
     showToastMsg('Settings saved')
   }
 
@@ -471,7 +509,7 @@ export default function Settings() {
                                 <span className="material-symbols-outlined text-[#005faf] !text-[20px]">
                                   {net.secure ? 'wifi_lock' : 'wifi'}
                                 </span>
-                                <span className="text-sm font-semibold truncate">
+                                <span className="text-sm font-semibold text-[#1a1c1c] truncate">
                                   {net.ssid || '(hidden)'}
                                 </span>
                                 {device?.wifi_ssid &&
@@ -500,7 +538,7 @@ export default function Settings() {
 
                   {selectedWifi && (
                     <div className="mt-4 space-y-3 rounded-xl border border-[#c5d8ef] bg-[#f5f9fd] p-3">
-                      <p className="text-sm font-semibold truncate">
+                      <p className="text-sm font-semibold text-[#1a1c1c] truncate">
                         {selectedWifi.ssid}
                       </p>
                       {selectedWifi.secure ? (
@@ -623,44 +661,108 @@ export default function Settings() {
               <div className="divide-y divide-[#e2e2e2]">
                 <div className="flex items-center justify-between py-4 gap-4">
                   <div className="min-w-0">
-                    <h4 className="text-base font-semibold">{t('settings.push')}</h4>
+                    <h4 className="text-base font-semibold text-[#1a1c1c]">
+                      {t('settings.push')}
+                    </h4>
+                    <p className="text-sm text-[#5b403d] mt-1">
+                      {t('settings.pushDesc')}
+                    </p>
                   </div>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={notifications.push}
                     onClick={() => handleToggleChange('push')}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                      notifications.push ? 'bg-[#af101a]' : 'bg-[#e2e2e2]'
+                    className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
+                      notifications.push
+                        ? 'border-[#af101a] bg-[#af101a]'
+                        : 'border-[#8f6f6c] bg-[#8f6f6c]'
                     }`}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow transition ${
                         notifications.push ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between py-4 gap-4">
-                  <div className="min-w-0">
-                    <h4 className="text-base font-semibold">{t('settings.sms')}</h4>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={notifications.sms}
-                    onClick={() => handleToggleChange('sms')}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                      notifications.sms ? 'bg-[#af101a]' : 'bg-[#e2e2e2]'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                        notifications.sms ? 'translate-x-5' : 'translate-x-0'
+                <div className="py-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <h4 className="text-base font-semibold text-[#1a1c1c]">
+                      {t('settings.sms')}
+                    </h4>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-label={t('settings.sms')}
+                      aria-checked={notifications.sms}
+                      onClick={() => handleToggleChange('sms')}
+                      className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
+                        notifications.sms
+                          ? 'border-[#af101a] bg-[#af101a]'
+                          : 'border-[#8f6f6c] bg-[#8f6f6c]'
                       }`}
-                    />
-                  </button>
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow transition ${
+                          notifications.sms ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  <p className="text-sm text-[#5b403d]">{t('settings.smsDesc')}</p>
+
+                  <div className="rounded-xl border border-[#e2e2e2] bg-[#f3f3f3] p-3 space-y-3">
+                    {!smsConfigured ? (
+                      <p className="text-sm text-[#af101a]">
+                        {t('settings.smsNotConfigured')}
+                      </p>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold uppercase tracking-wider text-[#5b403d]">
+                              {t('settings.smsBalance')}
+                            </p>
+                            {smsBalanceLoading ? (
+                              <p className="text-sm text-[#5b403d] mt-1">
+                                {t('settings.smsBalanceLoading')}
+                              </p>
+                            ) : smsBalanceError ? (
+                              <p className="text-sm text-[#af101a] mt-1">
+                                {smsBalanceError}
+                              </p>
+                            ) : (
+                              <>
+                                <p className="text-lg font-bold text-[#1a1c1c] mt-1">
+                                  {smsAccount?.credit_balance ??
+                                    smsAccount?.balance ??
+                                    '—'}
+                                </p>
+                                {smsAccount?.label ? (
+                                  <p className="text-xs text-[#5b403d] truncate">
+                                    {smsAccount.label}
+                                    {smsAccount.last_seen_label
+                                      ? ` · last seen ${smsAccount.last_seen_label}`
+                                      : ''}
+                                  </p>
+                                ) : null}
+                              </>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={loadSmsBalance}
+                            disabled={smsBalanceLoading}
+                            className="shrink-0 rounded-lg border border-[#005faf] px-3 py-2 text-xs font-bold uppercase tracking-wider text-[#005faf] disabled:opacity-60"
+                          >
+                            {t('settings.smsRefreshBalance')}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>

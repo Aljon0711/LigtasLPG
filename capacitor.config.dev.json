@@ -1,0 +1,12 @@
+{
+  "appId": "com.ligtaslpg.app",
+  "appName": "LigtasLPG",
+  "webDir": "dist",
+  "server": {
+    "url": "http://192.168.100.7:5173",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

@@ -9,6 +9,7 @@ import {
   updateProfile,
   getEmergencyContacts,
   addEmergencyContact,
+  updateEmergencyContact,
   deleteEmergencyContact,
   getInitials,
 } from '../lib/profile'
@@ -33,11 +34,38 @@ export default function Profile() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const [contacts, setContacts] = useState([])
-  const [showAddContact, setShowAddContact] = useState(false)
+  const [showContactForm, setShowContactForm] = useState(false)
+  const [editingContact, setEditingContact] = useState(null)
   const [contactName, setContactName] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [contactPrimary, setContactPrimary] = useState(false)
   const [contactSaving, setContactSaving] = useState(false)
+  const [contactToDelete, setContactToDelete] = useState(null)
+  const [contactDeleting, setContactDeleting] = useState(false)
+
+  const resetContactForm = () => {
+    setContactName('')
+    setContactPhone('')
+    setContactPrimary(false)
+    setEditingContact(null)
+    setShowContactForm(false)
+  }
+
+  const openAddContactForm = () => {
+    setEditingContact(null)
+    setContactName('')
+    setContactPhone('')
+    setContactPrimary(false)
+    setShowContactForm(true)
+  }
+
+  const openEditContactForm = (contact) => {
+    setEditingContact(contact)
+    setContactName(contact.name || '')
+    setContactPhone(contact.phone || '')
+    setContactPrimary(Boolean(contact.is_primary))
+    setShowContactForm(true)
+  }
 
   const [toastMessage, setToastMessage] = useState('')
   const [showToast, setShowToast] = useState(false)
@@ -128,7 +156,7 @@ export default function Profile() {
     showSuccess(t('profile.languageUpdated'))
   }
 
-  const handleAddContact = async (e) => {
+  const handleSaveContact = async (e) => {
     e.preventDefault()
     if (!userId) return
     if (!contactName.trim() || !contactPhone.trim()) {
@@ -138,6 +166,34 @@ export default function Profile() {
 
     setContactSaving(true)
     setErrorMessage('')
+
+    if (editingContact) {
+      const { data, error } = await updateEmergencyContact(userId, editingContact.id, {
+        name: contactName,
+        phone: contactPhone,
+        is_primary: contactPrimary,
+      })
+
+      setContactSaving(false)
+      if (error) {
+        setErrorMessage(error.message || 'Failed to update contact.')
+        return
+      }
+
+      setContacts((prev) => {
+        const next = prev.map((c) => {
+          if (c.id === data.id) return data
+          if (data.is_primary) return { ...c, is_primary: false }
+          return c
+        })
+        return next.sort(
+          (a, b) => Number(b.is_primary) - Number(a.is_primary)
+        )
+      })
+      resetContactForm()
+      showSuccess(t('profile.contactUpdated'))
+      return
+    }
 
     const { data, error } = await addEmergencyContact(userId, {
       name: contactName,
@@ -155,22 +211,30 @@ export default function Profile() {
       const next = contactPrimary
         ? prev.map((c) => ({ ...c, is_primary: false }))
         : [...prev]
-      return [...next, data]
+      return [...next, data].sort(
+        (a, b) => Number(b.is_primary) - Number(a.is_primary)
+      )
     })
-    setContactName('')
-    setContactPhone('')
-    setContactPrimary(false)
-    setShowAddContact(false)
+    resetContactForm()
     showSuccess(t('profile.contactAdded'))
   }
 
-  const handleDeleteContact = async (contactId) => {
-    const { error } = await deleteEmergencyContact(contactId)
+  const handleConfirmDeleteContact = async () => {
+    if (!contactToDelete) return
+
+    setContactDeleting(true)
+    setErrorMessage('')
+
+    const { error } = await deleteEmergencyContact(contactToDelete.id)
+
+    setContactDeleting(false)
     if (error) {
       setErrorMessage(error.message || 'Failed to delete contact.')
       return
     }
-    setContacts((prev) => prev.filter((c) => c.id !== contactId))
+
+    setContacts((prev) => prev.filter((c) => c.id !== contactToDelete.id))
+    setContactToDelete(null)
     showSuccess(t('profile.contactRemoved'))
   }
 
@@ -364,20 +428,28 @@ export default function Profile() {
               </div>
               <button
                 type="button"
-                aria-label={t('profile.addContact')}
-                onClick={() => setShowAddContact((v) => !v)}
+                aria-label={
+                  showContactForm ? t('common.cancel') : t('profile.addContact')
+                }
+                onClick={() => {
+                  if (showContactForm) resetContactForm()
+                  else openAddContactForm()
+                }}
                 className="text-[#af101a] hover:bg-[#d32f2f]/10 p-2 rounded-full transition-colors flex items-center justify-center"
               >
                 <span className="material-symbols-outlined">
-                  {showAddContact ? 'close' : 'add_circle'}
+                  {showContactForm ? 'close' : 'add_circle'}
                 </span>
               </button>
             </div>
 
             <p className="text-sm text-[#5b403d] mb-4">{t('profile.contactsDesc')}</p>
 
-            {showAddContact && (
-              <form onSubmit={handleAddContact} className="mb-4 space-y-3 rounded-xl bg-[#f3f3f3] p-4">
+            {showContactForm && (
+              <form onSubmit={handleSaveContact} className="mb-4 space-y-3 rounded-xl bg-[#f3f3f3] p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#5b403d]">
+                  {editingContact ? t('profile.editContact') : t('profile.addContact')}
+                </p>
                 <input
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
@@ -405,7 +477,13 @@ export default function Profile() {
                   disabled={contactSaving}
                   className="w-full rounded-lg bg-[#af101a] py-3 text-sm font-bold text-white disabled:opacity-60"
                 >
-                  {contactSaving ? t('profile.adding') : t('profile.addContact')}
+                  {contactSaving
+                    ? editingContact
+                      ? t('profile.savingContact')
+                      : t('profile.adding')
+                    : editingContact
+                      ? t('profile.saveContact')
+                      : t('profile.addContact')}
                 </button>
               </form>
             )}
@@ -446,8 +524,16 @@ export default function Profile() {
                       )}
                       <button
                         type="button"
+                        aria-label={`Edit ${contact.name}`}
+                        onClick={() => openEditContactForm(contact)}
+                        className="p-1 text-[#5b403d] hover:text-[#005faf]"
+                      >
+                        <span className="material-symbols-outlined !text-[20px]">edit</span>
+                      </button>
+                      <button
+                        type="button"
                         aria-label={`Delete ${contact.name}`}
-                        onClick={() => handleDeleteContact(contact.id)}
+                        onClick={() => setContactToDelete(contact)}
                         className="p-1 text-[#5b403d] hover:text-[#af101a]"
                       >
                         <span className="material-symbols-outlined !text-[20px]">delete</span>
@@ -490,6 +576,62 @@ export default function Profile() {
       </main>
 
       <BottomNav />
+
+      {contactToDelete && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/45"
+          role="presentation"
+          onClick={() => {
+            if (!contactDeleting) setContactToDelete(null)
+          }}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-contact-title"
+            aria-describedby="delete-contact-body"
+            className="w-full max-w-[360px] rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffdad6]">
+                <span className="material-symbols-outlined text-[#af101a]">delete</span>
+              </div>
+              <h3
+                id="delete-contact-title"
+                className="text-lg font-bold text-[#1a1c1c]"
+              >
+                {t('profile.deleteContactTitle')}
+              </h3>
+            </div>
+            <p id="delete-contact-body" className="text-sm text-[#5b403d] mb-5">
+              {t('profile.deleteContactBody', {
+                name: contactToDelete.name || t('common.user'),
+              })}
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={contactDeleting}
+                onClick={() => setContactToDelete(null)}
+                className="flex-1 rounded-lg border border-[#8f6f6c] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-[#5b403d] disabled:opacity-60"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={contactDeleting}
+                onClick={handleConfirmDeleteContact}
+                className="flex-1 rounded-lg bg-[#af101a] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-60"
+              >
+                {contactDeleting
+                  ? t('profile.deletingContact')
+                  : t('profile.deleteContactConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

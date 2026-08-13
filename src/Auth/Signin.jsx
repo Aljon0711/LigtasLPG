@@ -102,15 +102,45 @@ export default function Signin() {
     setAuthError('')
     setIsGoogleLoading(true)
 
-    // After Google OAuth, AuthCallback blocks unregistered accounts
-    const { error } = await signInWithGoogle('signin', {
-      rememberDays: staySignedIn ? STAY_SIGNED_IN_TEST_DAYS : 0,
-    })
+    const { error, next, message, cancelled } = await signInWithGoogle(
+      'signin',
+      {
+        rememberDays: staySignedIn ? STAY_SIGNED_IN_TEST_DAYS : 0,
+      }
+    )
+
+    if (cancelled) {
+      setIsGoogleLoading(false)
+      return
+    }
 
     if (error) {
       setAuthError(getAuthErrorMessage(error))
       setIsGoogleLoading(false)
+      return
     }
+
+    if (next === 'dashboard') {
+      navigate('/dashboard', {
+        replace: true,
+        state: { toast: 'Sign in successful' },
+      })
+      return
+    }
+
+    if (next === 'set-password') {
+      navigate('/set-password', { replace: true })
+      return
+    }
+
+    if (next === 'blocked') {
+      setAuthError(
+        message ||
+          'This Google account is not registered yet. Please sign up first.'
+      )
+    }
+
+    setIsGoogleLoading(false)
   }
 
   if (checkingSession) {

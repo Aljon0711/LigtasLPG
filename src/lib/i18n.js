@@ -106,7 +106,16 @@ const dictionaries = {
     'settings.sensitivity': 'Sensor Sensitivity',
     'settings.notifications': 'Notifications',
     'settings.push': 'Push Notifications',
+    'settings.pushDesc':
+      'Phone alerts for gas leaks (works even if the app is in the background). Requires the installed Android app + Firebase setup.',
     'settings.sms': 'SMS Alerts',
+    'settings.smsDesc':
+      'When enabled, emergency contacts get an SMS during a gas leak alert.',
+    'settings.smsNotConfigured':
+      'Add VITE_TEXTBEE_API_KEY in .env, then restart the app.',
+    'settings.smsBalance': 'Gateway phone',
+    'settings.smsBalanceLoading': 'Checking gateway…',
+    'settings.smsRefreshBalance': 'Refresh status',
     'settings.signal': 'Signal Strength',
     'settings.strong': 'Strong',
     'settings.scanWifi': 'Scan Wi-Fi',
@@ -151,6 +160,9 @@ const dictionaries = {
     'profile.setPrimary': 'Set as primary contact',
     'profile.addContact': 'Add Contact',
     'profile.adding': 'Adding...',
+    'profile.editContact': 'Edit Contact',
+    'profile.saveContact': 'Save Contact',
+    'profile.savingContact': 'Saving...',
     'profile.noContacts': 'No emergency contacts yet. Tap + to add one.',
     'profile.primary': 'Primary',
     'profile.support': 'Support',
@@ -160,7 +172,13 @@ const dictionaries = {
     'profile.updated': 'Profile updated',
     'profile.languageUpdated': 'Language updated',
     'profile.contactAdded': 'Contact added',
+    'profile.contactUpdated': 'Contact updated',
     'profile.contactRemoved': 'Contact removed',
+    'profile.deleteContactTitle': 'Remove contact?',
+    'profile.deleteContactBody':
+      'Remove {name} from your emergency contacts? You can add them again later.',
+    'profile.deleteContactConfirm': 'Remove',
+    'profile.deletingContact': 'Removing...',
     'profile.darkModeFail': 'Failed to update dark mode.',
     'profile.languageFail': 'Failed to update language.',
     'profile.contactRequired': 'Contact name and phone are required.',
@@ -170,6 +188,14 @@ const dictionaries = {
     'alert.subtitle': 'Gas leak detected — act immediately',
     'alert.call': 'Call Emergency Contact',
     'alert.dismiss': 'I am safe',
+    'alert.holdSafe': 'Hold for 2 seconds to confirm safety',
+    'alert.resetting': 'System resetting...',
+    'alert.minimize': 'Minimize alert',
+    'alert.minimizeHint':
+      'Stops the alarm sound so you can check the tank. Emergency stays active.',
+    'alert.minimizedToast': 'Alert minimized — sound stopped. Emergency still active.',
+    'alert.minimizedBanner': 'Emergency still active — tap to reopen alert',
+    'alert.safeToast': 'System reset — monitoring resumed',
 
     // Terms
     'terms.title': 'Terms & Privacy',
@@ -273,7 +299,16 @@ const dictionaries = {
     'settings.sensitivity': 'Sensitivity ng Sensor',
     'settings.notifications': 'Mga Notification',
     'settings.push': 'Push Notifications',
+    'settings.pushDesc':
+      'Phone alert kapag may gas leak (kahit naka-background ang app). Kailangan ang installed Android app + Firebase setup.',
     'settings.sms': 'SMS Alerts',
+    'settings.smsDesc':
+      'Kapag naka-on, makakatanggap ng SMS ang emergency contacts kapag may gas leak alert.',
+    'settings.smsNotConfigured':
+      'Lagyan ng VITE_TEXTBEE_API_KEY ang .env, tapos i-restart ang app.',
+    'settings.smsBalance': 'Gateway phone',
+    'settings.smsBalanceLoading': 'Tinitingnan ang gateway…',
+    'settings.smsRefreshBalance': 'I-refresh ang status',
     'settings.signal': 'Lakas ng Signal',
     'settings.strong': 'Malakas',
     'settings.scanWifi': 'I-scan ang Wi-Fi',
@@ -317,6 +352,9 @@ const dictionaries = {
     'profile.setPrimary': 'Gawing primary contact',
     'profile.addContact': 'Magdagdag ng Contact',
     'profile.adding': 'Idinadagdag...',
+    'profile.editContact': 'I-edit ang Contact',
+    'profile.saveContact': 'I-save ang Contact',
+    'profile.savingContact': 'Sine-save...',
     'profile.noContacts':
       'Wala pang emergency contact. Pindutin ang + para magdagdag.',
     'profile.primary': 'Primary',
@@ -327,7 +365,13 @@ const dictionaries = {
     'profile.updated': 'Na-update ang profile',
     'profile.languageUpdated': 'Na-update ang wika',
     'profile.contactAdded': 'Naidagdag ang contact',
+    'profile.contactUpdated': 'Na-update ang contact',
     'profile.contactRemoved': 'Inalis ang contact',
+    'profile.deleteContactTitle': 'Alisin ang contact?',
+    'profile.deleteContactBody':
+      'Alisin si {name} sa mga emergency contact mo? Pwede mo silang idagdag ulit mamaya.',
+    'profile.deleteContactConfirm': 'Alisin',
+    'profile.deletingContact': 'Inaalis...',
     'profile.darkModeFail': 'Hindi na-update ang dark mode.',
     'profile.languageFail': 'Hindi na-update ang wika.',
     'profile.contactRequired': 'Kailangan ang pangalan at numero ng contact.',
@@ -336,6 +380,15 @@ const dictionaries = {
     'alert.subtitle': 'May natukoy na gas leak — kumilos agad',
     'alert.call': 'Tawagan ang Emergency Contact',
     'alert.dismiss': 'Okay lang ako',
+    'alert.holdSafe': 'Pindotin ng 2 segundo para kumpirmahin ang kaligtasan',
+    'alert.resetting': 'Nire-reset ang system...',
+    'alert.minimize': 'I-minimize ang alert',
+    'alert.minimizeHint':
+      'Tinatigil ang alarm sound para ma-check mo ang tangke. Active pa rin ang emergency.',
+    'alert.minimizedToast':
+      'Na-minimize ang alert — tumigil ang sound. Active pa rin ang emergency.',
+    'alert.minimizedBanner': 'Active pa ang emergency — pindutin para buksan ulit',
+    'alert.safeToast': 'Na-reset ang system — tuloy ang monitoring',
 
     'terms.title': 'Mga Tuntunin at Privacy',
     'terms.back': 'Bumalik',

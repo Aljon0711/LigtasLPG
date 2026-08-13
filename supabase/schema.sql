@@ -194,9 +194,14 @@ create table if not exists public.emergency_contacts (
   name text not null,
   phone text not null,
   is_primary boolean default false,
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+create index if not exists emergency_contacts_user_active_idx
+  on public.emergency_contacts (user_id)
+  where deleted_at is null;
 
 alter table public.emergency_contacts enable row level security;
 

@@ -103,13 +103,37 @@ export default function Signup() {
     setInfoMessage('');
     setIsGoogleLoading(true);
 
-    // After Google OAuth, user must set an app password on /set-password
-    const { error } = await signInWithGoogle('signup');
+    const { error, next, message, cancelled } = await signInWithGoogle('signup');
+
+    if (cancelled) {
+      setIsGoogleLoading(false);
+      return;
+    }
 
     if (error) {
       setAuthError(getAuthErrorMessage(error));
       setIsGoogleLoading(false);
+      return;
     }
+
+    if (next === 'dashboard') {
+      navigate('/dashboard', {
+        replace: true,
+        state: { toast: 'Sign in successful' },
+      });
+      return;
+    }
+
+    if (next === 'set-password') {
+      navigate('/set-password', { replace: true });
+      return;
+    }
+
+    if (next === 'blocked') {
+      setAuthError(message || 'Google sign-up failed. Please try again.');
+    }
+
+    setIsGoogleLoading(false);
   };
 
   return (

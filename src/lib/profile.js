@@ -74,6 +74,7 @@ export async function getEmergencyContacts(userId) {
     .from('emergency_contacts')
     .select('*')
     .eq('user_id', userId)
+    .is('deleted_at', null)
     .order('is_primary', { ascending: false })
     .order('created_at', { ascending: true })
 
@@ -84,8 +85,9 @@ export async function addEmergencyContact(userId, { name, phone, is_primary = fa
   if (is_primary) {
     await supabase
       .from('emergency_contacts')
-      .update({ is_primary: false })
+      .update({ is_primary: false, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
+      .is('deleted_at', null)
   }
 
   const { data, error } = await supabase
@@ -102,11 +104,47 @@ export async function addEmergencyContact(userId, { name, phone, is_primary = fa
   return { data, error }
 }
 
+export async function updateEmergencyContact(
+  userId,
+  contactId,
+  { name, phone, is_primary = false }
+) {
+  if (is_primary) {
+    await supabase
+      .from('emergency_contacts')
+      .update({ is_primary: false, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .neq('id', contactId)
+      .is('deleted_at', null)
+  }
+
+  const { data, error } = await supabase
+    .from('emergency_contacts')
+    .update({
+      name: name.trim(),
+      phone: phone.trim(),
+      is_primary,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', contactId)
+    .is('deleted_at', null)
+    .select('*')
+    .single()
+
+  return { data, error }
+}
+
+/** Soft-delete: keeps the row in the database, hides it from the user. */
 export async function deleteEmergencyContact(contactId) {
   const { error } = await supabase
     .from('emergency_contacts')
-    .delete()
+    .update({
+      deleted_at: new Date().toISOString(),
+      is_primary: false,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', contactId)
+    .is('deleted_at', null)
 
   return { error }
 }

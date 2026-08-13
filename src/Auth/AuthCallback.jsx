@@ -1,20 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import {
-  resolveOAuthFlow,
-  getProfile,
-  signOut,
-  consumePendingRememberDays,
-  setStaySignedInForDays,
-  clearStaySignedInPreference,
-  markActiveTabSession,
-} from '../lib/auth'
+import { resolveOAuthFlow, resolveGoogleAuthDestination } from '../lib/auth'
 
 /**
- * Handles Google OAuth return:
- * - signup (or incomplete account) → force set app password
- * - signin → only allow users who already registered + set password
+ * Legacy redirect handler (old Supabase OAuth URL return).
+ * New Google login uses Firebase → signInWithIdToken and skips this page.
  */
 export default function AuthCallback() {
   const navigate = useNavigate()
@@ -22,36 +13,26 @@ export default function AuthCallback() {
 
   useEffect(() => {
     let cancelled = false
-    let done = false
 
-    async function routeAfterAuth(session, flow) {
-      if (cancelled || done || !session?.user) return
-      done = true
+    async function finishOAuth() {
+      const flow = resolveOAuthFlow()
 
-      const userId = session.user.id
-      let { data: profile } = await getProfile(userId)
-
-      // New Google user: wait for profile trigger
-      if (!profile) {
-        await new Promise((r) => setTimeout(r, 1000))
-        const retry = await getProfile(userId)
-        profile = retry.data
+      const href = window.location.href
+      if (href.includes('code=') || href.includes('access_token')) {
+        const { error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(href)
+        if (exchangeError) {
+          console.warn('exchangeCodeForSession:', exchangeError.message)
+        }
       }
 
       if (cancelled) return
 
-      const passwordSet = Boolean(profile?.password_set)
+      const { next, message } = await resolveGoogleAuthDestination(flow)
 
-      // Fully registered → dashboard
-      if (passwordSet) {
-        const rememberDays = consumePendingRememberDays()
-        if (rememberDays > 0) {
-          setStaySignedInForDays(rememberDays)
-        } else {
-          clearStaySignedInPreference()
-        }
-        markActiveTabSession()
+      if (cancelled) return
 
+      if (next === 'dashboard') {
         navigate('/dashboard', {
           replace: true,
           state: { toast: 'Sign in successful' },
@@ -59,76 +40,24 @@ export default function AuthCallback() {
         return
       }
 
-      // Explicit sign-in attempt without completed registration → block
-      if (flow === 'signin') {
-        setStatus('This Google account is not registered...')
-        await signOut()
-        navigate('/', {
-          replace: true,
-          state: {
-            authError:
-              'This Google account is not registered yet. Please sign up first and set an app password.',
-          },
-        })
+      if (next === 'set-password') {
+        setStatus('Almost done — set your app password...')
+        navigate('/set-password', { replace: true })
         return
       }
 
-      // signup flow, or flow lost but account incomplete → set password
-      setStatus('Almost done — set your app password...')
-      navigate('/set-password', { replace: true })
+      navigate(flow === 'signup' ? '/signup' : '/', {
+        replace: true,
+        state: {
+          authError: message || 'Google sign-in failed. Please try again.',
+        },
+      })
     }
-
-    async function finishOAuth() {
-      const flow = resolveOAuthFlow()
-
-      // Prefer URL/code exchange for PKCE
-      const href = window.location.href
-      if (href.includes('code=') || href.includes('access_token')) {
-        const { error: exchangeError } =
-          await supabase.auth.exchangeCodeForSession(href)
-        if (exchangeError) {
-          // ignore — getSession may still work for hash tokens
-          console.warn('exchangeCodeForSession:', exchangeError.message)
-        }
-      }
-
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession()
-
-      if (cancelled) return
-
-      if (session?.user) {
-        await routeAfterAuth(session, flow)
-        return
-      }
-
-      if (sessionError) {
-        navigate('/signup', {
-          replace: true,
-          state: {
-            authError: 'Google sign-in failed. Please try again.',
-          },
-        })
-      }
-    }
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (cancelled || done) return
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-        const flow = resolveOAuthFlow()
-        await routeAfterAuth(session, flow)
-      }
-    })
 
     finishOAuth()
 
     return () => {
       cancelled = true
-      subscription.unsubscribe()
     }
   }, [navigate])
 

@@ -19,6 +19,7 @@ import {
   vibrateAlarm,
   stopAlarmSound,
 } from '../lib/alarmFeedback'
+import { isAlertMinimized, setAlertMinimized } from '../lib/alertSession'
 import styles from '../styles'
 
 export default function Dashboard() {
@@ -111,6 +112,7 @@ export default function Dashboard() {
         })
         if (
           !suppressAlert &&
+          !isAlertMinimized() &&
           next.system_status === 'critical' &&
           lastStatusRef.current !== 'critical'
         ) {
@@ -134,6 +136,10 @@ export default function Dashboard() {
   useEffect(() => {
     const message = location.state?.toast
     const fromEmergencyReset = Boolean(location.state?.emergencyReset)
+    const fromMinimize = Boolean(location.state?.alertMinimized)
+    if (fromMinimize) {
+      setAlertMinimized(true)
+    }
     if (fromEmergencyReset) {
       alertSuppressUntilRef.current = Date.now() + 20000
       lastStatusRef.current = 'safe'
@@ -151,18 +157,23 @@ export default function Dashboard() {
     if (message) {
       showToastMsg(message)
     }
-    if (message || fromEmergencyReset) {
+    if (message || fromEmergencyReset || fromMinimize) {
       navigate(location.pathname, { replace: true, state: {} })
     }
   }, [location.state, location.pathname, navigate])
 
-  // Auto-open alert if already critical on load (skip right after I AM SAFE)
+  // Auto-open alert if already critical (skip after I AM SAFE or minimize)
   useEffect(() => {
     if (Date.now() < alertSuppressUntilRef.current) return
+    if (isAlertMinimized()) return
     if (device?.system_status === 'critical' || device?.emergency_latched) {
       navigate('/alert', { replace: true })
     }
   }, [device?.system_status, device?.emergency_latched, navigate])
+
+  const emergencyMinimized =
+    isAlertMinimized() &&
+    (device?.system_status === 'critical' || device?.emergency_latched)
 
   const clearButtonFocus = (event) => {
     // Prevent sticky :hover/:focus styles on touch phones
@@ -312,6 +323,27 @@ export default function Dashboard() {
       </AppHeader>
 
       <main className={styles.mainContent}>
+        {emergencyMinimized && (
+          <button
+            type="button"
+            onClick={() => {
+              setAlertMinimized(false)
+              navigate('/alert', { replace: true })
+            }}
+            className="mb-4 w-full flex items-center justify-between gap-3 rounded-xl bg-[#af101a] px-4 py-3 text-left text-white shadow-md"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-bold uppercase tracking-wider">
+                {t('alert.title')}
+              </p>
+              <p className="text-xs text-white/90 mt-0.5">
+                {t('alert.minimizedBanner')}
+              </p>
+            </div>
+            <span className="material-symbols-outlined shrink-0">chevron_right</span>
+          </button>
+        )}
+
         <div className="mb-4 px-1">
           <h2 className="text-xl font-bold text-[#1a1c1c]">
             {t('dashboard.welcome')}

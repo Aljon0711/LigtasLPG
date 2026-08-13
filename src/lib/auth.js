@@ -1,4 +1,8 @@
+import { Capacitor } from '@capacitor/core'
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
+import { GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth'
 import { supabase } from './supabase'
+import { getFirebaseAuth, isFirebaseWebConfigured } from './firebase'
 
 const OAUTH_FLOW_KEY = 'ligtas_oauth_flow'
 const STAY_SIGNED_IN_UNTIL_KEY = 'ligtas_stay_signed_in_until'
@@ -140,6 +144,90 @@ export function consumePendingRememberDays() {
 }
 
 /**
+ * After Supabase session exists, decide where the user should go.
+ * @param {'signin' | 'signup' | null} flow
+ * @returns {Promise<{ next: 'dashboard' | 'set-password' | 'blocked', message?: string }>}
+ */
+export async function resolveGoogleAuthDestination(flow) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session?.user) {
+    return {
+      next: 'blocked',
+      message: 'Google sign-in failed. Please try again.',
+    }
+  }
+
+  const userId = session.user.id
+  let { data: profile } = await getProfile(userId)
+
+  if (!profile) {
+    await new Promise((r) => setTimeout(r, 1000))
+    const retry = await getProfile(userId)
+    profile = retry.data
+  }
+
+  const passwordSet = Boolean(profile?.password_set)
+
+  if (passwordSet) {
+    const rememberDays = consumePendingRememberDays()
+    if (rememberDays > 0) setStaySignedInForDays(rememberDays)
+    else clearStaySignedInPreference()
+    markActiveTabSession()
+    return { next: 'dashboard' }
+  }
+
+  if (flow === 'signin') {
+    await signOut()
+    return {
+      next: 'blocked',
+      message:
+        'This Google account is not registered yet. Please sign up first and set an app password.',
+    }
+  }
+
+  return { next: 'set-password' }
+}
+
+async function getGoogleIdToken() {
+  if (Capacitor.isNativePlatform()) {
+    const result = await FirebaseAuthentication.signInWithGoogle()
+    const idToken = result?.credential?.idToken
+    if (!idToken) {
+      throw new Error('Google sign-in did not return an ID token.')
+    }
+    return idToken
+  }
+
+  if (!isFirebaseWebConfigured()) {
+    throw new Error(
+      'Firebase web config missing. Add VITE_FIREBASE_* keys to .env (Firebase Console → Project settings → Web app).'
+    )
+  }
+
+  const auth = getFirebaseAuth()
+  const provider = new GoogleAuthProvider()
+  provider.setCustomParameters({ prompt: 'select_account' })
+  const result = await signInWithPopup(auth, provider)
+  const credential = GoogleAuthProvider.credentialFromResult(result)
+  const idToken = credential?.idToken
+  if (!idToken) {
+    throw new Error('Google sign-in did not return an ID token.')
+  }
+
+  try {
+    await firebaseSignOut(auth)
+  } catch {
+    /* ignore */
+  }
+
+  return idToken
+}
+
+/**
+ * Google via Firebase / native Google Sign-In → Supabase session (no supabase.co redirect).
  * @param {'signin' | 'signup'} flow
  * @param {{ rememberDays?: number }} options
  */
@@ -148,21 +236,31 @@ export async function signInWithGoogle(flow = 'signin', options = {}) {
   localStorage.setItem(OAUTH_FLOW_KEY, flow)
   setPendingRememberDays(options.rememberDays || 0)
 
-  // Keep flow in redirect URL so it survives Google OAuth (sessionStorage can be lost)
-  const redirectTo = `${window.location.origin}/auth/callback?flow=${flow}`
+  try {
+    const idToken = await getGoogleIdToken()
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
-    },
-  })
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
+    })
 
-  return { data, error }
+    if (error) return { data: null, error, next: null }
+
+    const resolved = await resolveGoogleAuthDestination(flow)
+    return { data, error: null, ...resolved }
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Google sign-in was cancelled.'
+    // User closed the Google sheet — not a hard failure message for cancel codes
+    if (/cancel|closed|popup/i.test(message)) {
+      return { data: null, error: null, next: null, cancelled: true }
+    }
+    return {
+      data: null,
+      error: { message },
+      next: null,
+    }
+  }
 }
 
 /**

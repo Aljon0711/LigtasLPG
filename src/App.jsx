@@ -12,6 +12,8 @@ import Settings from './Components/Settings'
 import Logs from './Components/Logs'
 import Alert from './Components/Alert'
 import SplashScreen from './Components/SplashScreen'
+import EmergencyMonitor from './Components/EmergencyMonitor'
+import PushBootstrap from './Components/PushBootstrap'
 import { PreferencesProvider } from './lib/PreferencesContext'
 import './styles'
 
@@ -33,6 +35,8 @@ function AppRoutes() {
         }
       >
         <SessionGuard />
+        <PushBootstrap />
+        <EmergencyMonitor />
         <Routes>
           <Route path="/" element={<Signin />} />
           <Route path="/signup" element={<Signup />} />

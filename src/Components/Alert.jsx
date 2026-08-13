@@ -14,6 +14,9 @@ import {
   stopContinuousAlarm,
   ensureAlarmPlaying,
 } from '../lib/alarmFeedback'
+import { isSmsConfigured, sendEmergencySmsAlerts } from '../lib/sms'
+import { clearAlertSession, setAlertMinimized } from '../lib/alertSession'
+import { clearEmergencyNotification } from '../lib/localNotifications'
 import '../styles'
 
 export default function Alert() {
@@ -23,7 +26,9 @@ export default function Alert() {
   const [isResetting, setIsResetting] = useState(false)
   const [device, setDevice] = useState(null)
   const [primaryContact, setPrimaryContact] = useState(null)
+  const [smsStatus, setSmsStatus] = useState('')
   const pressTimerRef = useRef(null)
+  const smsSentRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -37,16 +42,47 @@ export default function Alert() {
         return
       }
 
-      const { device: d } = await ensureUserDevice()
+      const { device: d, settings: s } = await ensureUserDevice()
       if (cancelled) return
       setDevice(d)
+      // Stale notification tap after "I am safe" — don't keep alarm screen open
+      const stillCritical =
+        d?.system_status === 'critical' || d?.emergency_latched
+      if (!stillCritical) {
+        clearEmergencyNotification()
+        navigate('/dashboard', { replace: true })
+        return
+      }
       if (d?.id) unsubscribe = subscribeToDevice(d.id, setDevice)
 
       const { data: contacts } = await getEmergencyContacts(user.id)
-      if (!cancelled) {
-        setPrimaryContact(
-          contacts?.find((c) => c.is_primary) || contacts?.[0] || null
-        )
+      if (cancelled) return
+
+      const primary =
+        contacts?.find((c) => c.is_primary) || contacts?.[0] || null
+      setPrimaryContact(primary)
+
+      if (
+        !smsSentRef.current &&
+        s?.notify_sms &&
+        isSmsConfigured() &&
+        primary
+      ) {
+        smsSentRef.current = true
+        setSmsStatus('Sending SMS alert…')
+        const { sent, errors } = await sendEmergencySmsAlerts({
+          contacts: [primary],
+          pressureKpa: d?.pressure_kpa,
+          hardwareId: d?.hardware_id,
+        })
+        if (cancelled) return
+        if (sent.length > 0) {
+          setSmsStatus(`SMS sent to ${primary.name || primary.phone}`)
+        } else {
+          setSmsStatus(errors[0]?.message || 'SMS send failed')
+        }
+      } else if (s?.notify_sms && !isSmsConfigured()) {
+        setSmsStatus('SMS alerts on — add VITE_TEXTBEE_API_KEY in .env')
       }
     }
 
@@ -57,7 +93,6 @@ export default function Alert() {
     }
   }, [navigate])
 
-  // Loop alarm while Emergency Alert is on screen
   useEffect(() => {
     void startContinuousAlarm()
     return () => {
@@ -70,7 +105,7 @@ export default function Alert() {
     ensureAlarmPlaying()
     setHoldingProgress(true)
     pressTimerRef.current = setTimeout(() => {
-      handleResetSystem()
+      handleIAmSafe()
     }, 2000)
   }
 
@@ -80,10 +115,24 @@ export default function Alert() {
     if (pressTimerRef.current) clearTimeout(pressTimerRef.current)
   }
 
-  const handleResetSystem = async () => {
+  const handleMinimize = () => {
+    stopContinuousAlarm()
+    setAlertMinimized(true)
+    navigate('/dashboard', {
+      replace: true,
+      state: {
+        toast: t('alert.minimizedToast'),
+        alertMinimized: true,
+      },
+    })
+  }
+
+  const handleIAmSafe = async () => {
     setIsResetting(true)
     setHoldingProgress(false)
     stopContinuousAlarm()
+    clearAlertSession()
+    clearEmergencyNotification()
 
     if (device?.id) {
       await sendDeviceCommand(device.id, 'reset_emergency')
@@ -102,7 +151,10 @@ export default function Alert() {
       () =>
         navigate('/dashboard', {
           replace: true,
-          state: { emergencyReset: true, toast: 'System reset — monitoring resumed' },
+          state: {
+            emergencyReset: true,
+            toast: t('alert.safeToast'),
+          },
         }),
       800
     )
@@ -120,10 +172,23 @@ export default function Alert() {
       onPointerDown={ensureAlarmPlaying}
     >
       <AppHeader variant="alert">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleMinimize()
+          }}
+          className="material-symbols-outlined text-white !text-[24px] p-1"
+          aria-label={t('alert.minimize')}
+          title={t('alert.minimize')}
+        >
+          close
+        </button>
         <Link
           to="/profile"
           className="material-symbols-outlined text-white !text-[24px] p-1"
           aria-label="Account"
+          onClick={(e) => e.stopPropagation()}
         >
           account_circle
         </Link>
@@ -185,9 +250,36 @@ export default function Alert() {
                   : ''}
               </p>
             </div>
+
+            {smsStatus ? (
+              <>
+                <div className="h-[1px] bg-white/20 w-full" />
+                <div className="flex gap-4 items-center">
+                  <span className="material-symbols-outlined flex-shrink-0 text-white">
+                    sms
+                  </span>
+                  <p className="text-xs text-white font-medium">{smsStatus}</p>
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-3 pt-4">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleMinimize()
+              }}
+              className="w-full border-2 border-white/80 text-white text-base py-3 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center gap-2 font-semibold"
+            >
+              <span className="material-symbols-outlined">minimize</span>
+              {t('alert.minimize')}
+            </button>
+            <p className="text-white/70 text-xs font-medium -mt-1">
+              {t('alert.minimizeHint')}
+            </p>
+
             <div className="relative group">
               <button
                 type="button"
@@ -211,12 +303,18 @@ export default function Alert() {
                     transitionDuration: holdingProgress ? '2000ms' : '0ms',
                   }}
                 />
-                <span className="relative z-10">
-                  {isResetting ? 'SYSTEM RESETTING...' : t('alert.dismiss')}
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  <span
+                    className="material-symbols-outlined !text-[22px]"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    verified_user
+                  </span>
+                  {isResetting ? t('alert.resetting') : t('alert.dismiss')}
                 </span>
               </button>
               <p className="mt-2 text-white/70 text-xs font-semibold uppercase tracking-wider">
-                Hold for 2 seconds to confirm safety
+                {t('alert.holdSafe')}
               </p>
             </div>
 
