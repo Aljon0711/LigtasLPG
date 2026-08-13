@@ -12,6 +12,18 @@ dist
 dist-ssr
 *.local
 
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Firebase / push secrets
+secrets/
+android/app/google-services.json
+**/serviceAccount*.json
+**/firebase-adminsdk*.json
+**/firebase-secret.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
